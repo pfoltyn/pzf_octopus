@@ -1,0 +1,89 @@
+substitutions:
+  device_name: "octopus-mini"
+
+esphome:
+  name: ${device_name}
+  comment: "ESP32-C3 Supermini — passive Octopus Home Mini meter reader"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+  framework:
+    type: esp-idf     # mbedTLS AES-CCM* available (needed by the decoder)
+
+# Enable logging (over USB-Serial-JTAG on the C3; does not touch the tap pin)
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: ${device_name} Fallback Hotspot
+    password: !secret wifi_password
+
+captive_portal:
+
+web_server:
+  port: 80
+
+# Local external component (components/octopus_mini/)
+external_components:
+  - source: components
+    components: [octopus_mini]
+
+sensor:
+  - platform: wifi_signal
+    name: ${device_name} Wifi Signal Strength
+    update_interval: 90s
+    entity_category: "diagnostic"
+
+  - platform: uptime
+    name: ${device_name} Uptime
+    update_interval: 300s
+    entity_category: "diagnostic"
+
+text_sensor:
+  - platform: wifi_info
+    ssid:
+      name: Connected SSID
+    ip_address:
+      name: IP Address
+    dns_address:
+      name: DNS Address
+
+#######################################
+# Device specific Config Begins Below #
+#######################################
+
+# Passive tap on the MGM210P (Zigbee NCP) TX line. RX only — never driven.
+#   MGM210P TX -> GPIO4 ;  GND -> GND
+uart:
+  - id: ncp_uart
+    rx_pin: GPIO4
+    baud_rate: 115200
+    rx_buffer_size: 1024
+
+# Decode the Secure-EZSP stream and expose meter sensors to Home Assistant.
+octopus_mini:
+  uart_id: ncp_uart
+  key: !secret octopus_uart_key
+  power:
+    name: ${device_name} Electricity Power
+  import_energy:
+    name: ${device_name} Electricity Import
+  export_energy:
+    name: ${device_name} Electricity Export
+  gas:
+    name: ${device_name} Gas

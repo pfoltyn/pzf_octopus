@@ -1,0 +1,6 @@
+; Sample 8 consecutive pins every PIO clock. Autopush every 4 samples,
+; shift right so the oldest sample ends up in bits [7:0].
+.program sample8
+.wrap_target
+    in pins, 8
+.wrap

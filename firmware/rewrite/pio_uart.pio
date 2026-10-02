@@ -1,0 +1,22 @@
+; Level mirror: OUT pin follows IN pin at full speed.
+.program mirror
+.wrap_target
+    mov pins, pins
+.wrap
+
+; UART TX, 8 cycles/bit, 8N1, LSB first. clkdiv = sysclk/(8*baud).
+.program uart_tx
+.side_set 1 opt
+    pull       side 1 [7]
+    set x, 7   side 0 [7]
+bitloop:
+    out pins, 1
+    jmp x-- bitloop     [6]
+
+; UART RX, 8 cycles/bit, 8N1.
+.program uart_rx
+    wait 0 pin 0
+    set x, 7        [10]
+bitloop:
+    in pins, 1
+    jmp x-- bitloop [6]

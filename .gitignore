@@ -1,0 +1,27 @@
+# --- secrets (never commit) ---
+secrets.yaml
+esphome/secrets.yaml
+
+# --- build / tooling artifacts ---
+.esphome/
+__pycache__/
+*.pyc
+firmware/**/build/
+firmware/build*/
+
+# --- unrelated local config ---
+attic-big.yaml
+
+# --- logs & intermediate exports (top-level only) ---
+/*.log
+/*.vcd
+/mon.txt
+
+# --- exploratory captures & intermediate firmware images (keepers live in
+#     captures/ and firmware/prebuilt/) ---
+/cap_*.bin
+/cap_*.txt
+/*.uf2
+
+# editor local-history
+.history/

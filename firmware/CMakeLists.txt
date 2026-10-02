@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.13)
+include(pico_sdk_import.cmake)
+project(picosniff C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+pico_sdk_init()
+
+add_executable(picosniff sniffer.c)
+pico_generate_pio_header(picosniff ${CMAKE_CURRENT_LIST_DIR}/sample.pio)
+target_link_libraries(picosniff pico_stdlib hardware_pio hardware_dma hardware_vreg)
+pico_enable_stdio_usb(picosniff 1)
+pico_enable_stdio_uart(picosniff 0)
+pico_add_extra_outputs(picosniff)

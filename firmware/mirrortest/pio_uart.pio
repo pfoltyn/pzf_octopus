@@ -1,0 +1,13 @@
+; Full-speed 1-pin level mirror: OUT pin continuously follows the IN pin.
+.program mirror
+.wrap_target
+    mov pins, pins
+.wrap
+
+; PIO UART RX (8 cycles/bit; clkdiv = sysclk/(8*baud)) for logging taps.
+.program uart_rx
+    wait 0 pin 0
+    set x, 7        [10]
+bitloop:
+    in pins, 1
+    jmp x-- bitloop [6]

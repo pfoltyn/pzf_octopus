@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.13)
+include(pico_sdk_import.cmake)
+project(fakencp C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+pico_sdk_init()
+
+add_executable(fakencp main.c usb_descriptors.c)
+pico_generate_pio_header(fakencp ${CMAKE_CURRENT_LIST_DIR}/pio_uart.pio)
+target_include_directories(fakencp PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(fakencp pico_stdlib hardware_pio hardware_clocks tinyusb_device tinyusb_board)
+pico_add_extra_outputs(fakencp)
