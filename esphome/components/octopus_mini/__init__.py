@@ -22,6 +22,8 @@ CONF_KEY = "key"
 CONF_IMPORT = "import_energy"
 CONF_EXPORT = "export_energy"
 CONF_GAS = "gas"
+CONF_ELEC_PRICE = "electricity_price"
+CONF_GAS_PRICE = "gas_price"
 
 
 def _parse_key(value):
@@ -64,6 +66,16 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_TOTAL_INCREASING,
                 accuracy_decimals=3,
             ),
+            cv.Optional(CONF_ELEC_PRICE): sensor.sensor_schema(
+                unit_of_measurement="GBP/kWh",
+                state_class=STATE_CLASS_MEASUREMENT,
+                accuracy_decimals=4,
+            ),
+            cv.Optional(CONF_GAS_PRICE): sensor.sensor_schema(
+                unit_of_measurement="GBP/kWh",
+                state_class=STATE_CLASS_MEASUREMENT,
+                accuracy_decimals=4,
+            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -89,3 +101,7 @@ async def to_code(config):
         cg.add(var.set_export_sensor(await sensor.new_sensor(config[CONF_EXPORT])))
     if CONF_GAS in config:
         cg.add(var.set_gas_sensor(await sensor.new_sensor(config[CONF_GAS])))
+    if CONF_ELEC_PRICE in config:
+        cg.add(var.set_elec_price_sensor(await sensor.new_sensor(config[CONF_ELEC_PRICE])))
+    if CONF_GAS_PRICE in config:
+        cg.add(var.set_gas_price_sensor(await sensor.new_sensor(config[CONF_GAS_PRICE])))

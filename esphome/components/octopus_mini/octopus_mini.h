@@ -33,6 +33,8 @@ class OctopusMini : public Component, public uart::UARTDevice {
   void set_import_sensor(sensor::Sensor *s) { import_ = s; }
   void set_export_sensor(sensor::Sensor *s) { export_ = s; }
   void set_gas_sensor(sensor::Sensor *s) { gas_ = s; }
+  void set_elec_price_sensor(sensor::Sensor *s) { elec_price_ = s; }
+  void set_gas_price_sensor(sensor::Sensor *s) { gas_price_ = s; }
 
   float get_setup_priority() const override { return setup_priority::DATA; }
 
@@ -52,6 +54,8 @@ class OctopusMini : public Component, public uart::UARTDevice {
   std::vector<uint8_t> key_, buf_;
   bool esc_{false};
   sensor::Sensor *power_{nullptr}, *import_{nullptr}, *export_{nullptr}, *gas_{nullptr};
+  sensor::Sensor *elec_price_{nullptr}, *gas_price_{nullptr};
+  uint8_t elec_meter_ep_{0xFF};        // electricity metering endpoint (for price routing)
 
   // Per-endpoint scaling/type: electricity and gas are separate endpoints with
   // their OWN UnitOfMeasure / Multiplier / Divisor.
@@ -109,12 +113,17 @@ class OctopusMini : public Component, public uart::UARTDevice {
   //   addrIndex(1) msgLen(1) message[msgLen]
   void parse_incoming_(const uint8_t *p, size_t n) {
     if (n < 19) return;
-    if ((p[3] | (p[4] << 8)) != 0x0702) return;              // Simple Metering cluster
+    uint16_t cluster = p[3] | (p[4] << 8);
     uint8_t ep = p[5];
     uint8_t msglen = p[18];
     if ((size_t) 19 + msglen > n || msglen < 3) return;
     const uint8_t *z = p + 19;
-    if (z[2] != 0x01) return;                                // ZCL Read Attributes Response
+    if (cluster == 0x0702) parse_metering_(z, msglen, ep);     // Simple Metering
+    else if (cluster == 0x0700) parse_price_(z, msglen, ep);   // Price
+  }
+
+  void parse_metering_(const uint8_t *z, uint8_t msglen, uint8_t ep) {
+    if (z[2] != 0x01) return;                                  // ZCL Read Attributes Response
     size_t i = 3;
     while (i + 3 <= msglen) {
       uint16_t aid = z[i] | (z[i + 1] << 8);
@@ -127,6 +136,31 @@ class OctopusMini : public Component, public uart::UARTDevice {
       handle_attr_(aid, type, z + i, vl, ep);
       i += vl;
     }
+  }
+
+  // Price cluster PublishPrice (cluster-specific cmd 0x00). Pull the unit Price
+  // and its trailing-digit scaling. Route to electricity vs gas by whether the
+  // endpoint matches the electricity *metering* endpoint we latched.
+  void parse_price_(const uint8_t *z, uint8_t msglen, uint8_t ep) {
+    if (!(z[0] & 0x01) || z[2] != 0x00) return;                // cluster-specific PublishPrice
+    const uint8_t *f = z + 3;
+    size_t fn = (size_t) msglen - 3, i = 0;
+    auto need = [&](size_t k) { return i + k <= fn; };
+    if (!need(4)) return; i += 4;                              // providerID
+    if (!need(1)) return; uint8_t rl = f[i++];                 // rateLabel length
+    if (!need(rl)) return; i += rl;                            // rateLabel
+    if (!need(4)) return; i += 4;                              // issuerEventID
+    if (!need(4)) return; i += 4;                              // currentTime
+    if (!need(1)) return; i += 1;                              // unitOfMeasure
+    if (!need(2)) return; i += 2;                              // currency
+    if (!need(1)) return; uint8_t trailing = f[i++] >> 4;      // priceTrailingDigit & tier
+    if (!need(1)) return; i += 1;                              // numberOfPriceTiers & registerTier
+    if (!need(4)) return; i += 4;                              // startTime
+    if (!need(2)) return; i += 2;                              // durationInMinutes
+    if (!need(4)) return; double price = (double) uintle_(f + i, 4);
+    for (uint8_t t = 0; t < trailing; t++) price /= 10.0;      // -> currency per unit (e.g. GBP/kWh)
+    if (ep == elec_meter_ep_) { if (elec_price_) elec_price_->publish_state(price); }
+    else { if (gas_price_) gas_price_->publish_state(price); }
   }
 
   static size_t type_len_(uint8_t t, const uint8_t *d, size_t avail) {
@@ -156,11 +190,12 @@ class OctopusMini : public Component, public uart::UARTDevice {
     Ep &e = eps_[ep];
     double scale = (double) e.mult / (double) e.div;         // uses this ep's current mult/div
     switch (aid) {
-      case 0x0300: e.unit = (uint8_t) uintle_(d, n); break;              // UnitOfMeasure
+      case 0x0300: e.unit = (uint8_t) uintle_(d, n); if (e.unit == 0x00) elec_meter_ep_ = ep; break;  // UnitOfMeasure
       case 0x0301: { uint32_t v = uintle_(d, n); if (v) e.mult = v; } break;  // Multiplier
       case 0x0302: { uint32_t v = uintle_(d, n); if (v) e.div = v; } break;   // Divisor
       case 0x0400:                                                      // InstantaneousDemand -> W
         if (e.unit == 0xFF) e.unit = 0x00;                              // demand => electricity
+        elec_meter_ep_ = ep;
         if (power_) power_->publish_state((double) intle_(d, n) * scale * 1000.0);
         break;
       case 0x0000:                                                      // CurrentSummationDelivered

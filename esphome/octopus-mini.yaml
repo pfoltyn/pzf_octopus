@@ -90,3 +90,7 @@ octopus_mini:
     name: ${device_name} Electricity Export
   gas:
     name: ${device_name} Gas
+  electricity_price:
+    name: ${device_name} Electricity Unit Price
+  gas_price:
+    name: ${device_name} Gas Unit Price
