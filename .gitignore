@@ -25,3 +25,6 @@ attic-big.yaml
 
 # editor local-history
 .history/
+
+# ESPHome auto-generated (redundant with the above)
+esphome/.gitignore
