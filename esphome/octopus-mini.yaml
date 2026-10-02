@@ -38,10 +38,13 @@ captive_portal:
 web_server:
   port: 80
 
-# Local external component (components/octopus_mini/)
+# External component (pulled from GitHub; no local files needed).
+# For local development against ./components instead, use:
+#   - source: {type: local, path: components}
 external_components:
-  - source: components
+  - source: github://pfoltyn/pzf_octopus@main
     components: [octopus_mini]
+    refresh: 1d
 
 sensor:
   - platform: wifi_signal
