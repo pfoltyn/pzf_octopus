@@ -57,6 +57,21 @@ sensor:
     update_interval: 300s
     entity_category: "diagnostic"
 
+  # Gas volume (m³) -> energy (kWh) so the £/kWh gas price works in the Energy
+  # dashboard. UK formula: m³ × volume-correction (1.02264) × calorific value
+  # (≈39.5 MJ/m³) ÷ 3.6. Adjust the calorific value to your gas network's figure
+  # (printed on your bill, typically 38–41 MJ/m³).
+  - platform: template
+    name: ${device_name} Gas Energy
+    unit_of_measurement: "kWh"
+    device_class: energy
+    state_class: total_increasing
+    accuracy_decimals: 3
+    update_interval: 60s
+    lambda: |-
+      if (!id(octo_gas).has_state()) return NAN;
+      return id(octo_gas).state * 1.02264f * 39.5f / 3.6f;
+
 text_sensor:
   - platform: wifi_info
     ssid:
@@ -90,6 +105,7 @@ octopus_mini:
     name: ${device_name} Electricity Export
   gas:
     name: ${device_name} Gas
+    id: octo_gas
   electricity_price:
     name: ${device_name} Electricity Unit Price
   gas_price:
