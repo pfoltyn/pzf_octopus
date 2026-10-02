@@ -231,7 +231,8 @@ So with just the **Secure-EZSP UART key** and a passive tap, `passthru-decrypt`
 yields the live meter feed — the network key and an OTA radio sniffer are **not
 required** for the readings.
 
-Full decrypted real session: `captures/cap_reprovision_decrypted.txt` (2887 lines).
+The decrypted session (keys, install code, meter data) is kept **private** — not
+committed. The representative decoded values above are enough to show the result.
 
 ---
 
@@ -306,7 +307,8 @@ esphome/secrets.yaml.example   copy to secrets.yaml (gitignored) and fill in
 hardware/pcb/                  KiCad board project
 hardware/symbols/              MGM210P22A KiCad symbol + generator
 tests/                         decoder test fixtures (synth.py + sample captures)
-captures/cap_reprovision.bin           raw capture of the successful re-provisioning
-captures/cap_reprovision_decrypted.txt full decrypted real ESP↔NCP session
-captures/cap_boot.bin                   reference boot+secure-session capture
+captures/cap_boot.bin                   reference boot+secure-session capture (encrypted; no key material)
 ```
+
+Note: the re-provisioning captures (which contain recoverable key material) are
+kept private and are not part of this repo.
