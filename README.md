@@ -196,13 +196,16 @@ DCC registration are unchanged. Not guaranteed for every meter — treat it as
 
 ## 6. Outcome
 
+Every key the device holds was recovered (values redacted — they're specific to
+my meter):
+
 | Secret | Value |
 |--------|-------|
-| **Zigbee network key** (HAN NWK-layer) | `REDACTED` |
-| **Secure-EZSP UART key** | `REDACTED` |
-| **Trust Center link key** | `REDACTED` |
-| Install-code MFG token (raw) | `REDACTED` |
-| Meter/TC EUI64 · channel | `REDACTED` · 11 |
+| **Zigbee network key** (HAN NWK-layer) | `‹redacted›` |
+| **Secure-EZSP UART key** | `‹redacted›` |
+| **Trust Center link key** | `‹redacted›` |
+| Install-code MFG token (raw) | `‹redacted›` |
+| Meter/TC EUI64 · channel | `‹redacted›` · 11 |
 
 Values are device-specific and change if the NCP is re-provisioned; the network
 key may be rotated by the trust center (re-read with `secure-query`).
